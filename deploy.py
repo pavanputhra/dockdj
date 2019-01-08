@@ -59,3 +59,5 @@ EOF
                 cnx.run('rm -R {0}'.format(server_dir))
             except exceptions.UnexpectedExit:
                 print('Some exception')
+
+    os.remove(zip_file_name)
