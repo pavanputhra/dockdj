@@ -11,13 +11,15 @@ servers:
   env: {}
 app:
   name: abc
-  django_app: ''
-  path: "../"
+  django_app: 'hello_world'
+  requirements_file: 'requirements.txt'
+  port: 80
+  path: "/path/to/project"
   docker:
-    image: abernix/meteord:base
+    image: python:3.7
   env:
-    ROOT_URL: http://app.com
-    MONGO_URL: mongodb://localhost/meteor
+    FOO: http://app.com
+    BAR: mongodb://localhost/meteor
 '''
 
     if os.path.isfile(CONFIG_FILE):
