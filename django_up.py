@@ -1,9 +1,6 @@
 from argparse import ArgumentParser
 from init import init
-
-
-def setup():
-    print('setup')
+from setup import setup
 
 
 def deploy():
