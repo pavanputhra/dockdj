@@ -20,6 +20,7 @@ def deploy():
     docker_imagedocker_image = config_yaml['app']['docker']['image']
     django_app_name = config_yaml['app']['django_app']
     requirements_file = config_yaml['app']['requirements_file']
+    app_port = config_yaml['app']['port']
 
     zip_file_name = app_name + '.zip'
     shutil.make_archive(app_name, 'zip', app_dir)
@@ -31,8 +32,8 @@ FROM {0}
 ADD . app
 RUN pip install gunicorn && pip install -r app/{1} || :
 WORKDIR /app
-ENTRYPOINT [ "bash", "-c", "gunicorn {2}.wsgi -b 0.0.0.0:8000" ]
-EXPOSE 80 8000
+ENTRYPOINT [ "bash", "-c", "gunicorn {2}.wsgi -b 0.0.0.0:80" ]
+EXPOSE 80
 EOF
 '''
 
@@ -52,5 +53,9 @@ EOF
                     with cnx.cd(app_name):
                         cnx.run('touch Dockerfile')
                         cnx.run(docker_file_cmd.format(docker_imagedocker_image, requirements_file,  django_app_name))
+                        cnx.run('docker build -t {0} .'.format(app_name))
+                        cnx.run('docker run -d -p {0}:80 {1}'.format(app_port, app_name))
+                    cnx.run('rm -R {0}'.format(app_name))
+                cnx.run('rm -R {0}'.format(server_dir))
             except exceptions.UnexpectedExit:
                 print('Some exception')
