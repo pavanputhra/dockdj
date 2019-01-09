@@ -1,9 +1,12 @@
 import os
-from settings import CONFIG_FILE
+from du_settings import CONFIG_FILE, SETTINGS_PY_FILE
 from fabric import Connection
 import yaml
 from invoke import exceptions
 import shutil
+
+PATH_PREFIX = '/var/tmp/'
+
 
 def deploy():
     print('Deploying')
@@ -14,6 +17,9 @@ def deploy():
     with open(CONFIG_FILE, 'r') as the_file:
         config_yaml = yaml.load(the_file)
 
+    with open(SETTINGS_PY_FILE, 'r') as the_file:
+        settings_py = the_file.read()
+
     print('Zipping the django project')
     app_dir = config_yaml['app']['path']
     app_name = config_yaml['app']['name']
@@ -21,42 +27,62 @@ def deploy():
     django_app_name = config_yaml['app']['django_app']
     requirements_file = config_yaml['app']['requirements_file']
     app_port = config_yaml['app']['port']
+    envs = config_yaml['app']['env']
 
-    zip_file_name = app_name + '.zip'
+    server_dir = PATH_PREFIX + 'django_up'
+
+    zip_file_name = f'{app_name}.zip'
+    zip_file_path = f'{server_dir}/{zip_file_name}'
+    unzip_dir_path = f'{server_dir}/{app_name}'
     shutil.make_archive(app_name, 'zip', app_dir)
 
-    server_dir = 'django_up'
+    envs_string = ''
+    for k, v in envs.items():
+        envs_string += f'ENV {k} {v}\n'
 
-    docker_file_cmd = '''cat << EOF > Dockerfile
-FROM {0}
+    docker_file_cmd = f'''cat << EOF > {unzip_dir_path}/Dockerfile
+FROM {docker_imagedocker_image}
 ADD . app
-RUN pip install gunicorn && pip install -r app/{1} || :
+RUN pip install gunicorn && pip install -r app/{requirements_file} || :
+{envs_string}
 WORKDIR /app
-ENTRYPOINT [ "bash", "-c", "gunicorn {2}.wsgi -b 0.0.0.0:80" ]
+ENTRYPOINT [ "bash", "-c", "gunicorn {django_app_name}.wsgi -b 0.0.0.0:80" ]
 EXPOSE 80
 EOF
 '''
 
+    append_settings_py_cmd = f'''cat << EOF >> {unzip_dir_path}/{django_app_name}/settings.py
+{settings_py}
+EOF
+ '''
+
     for server in config_yaml['servers']:
+        server_env = server['env']
+        server_env_opts = ''
+        if server_env is not None:
+            for k, v in server_env.items():
+                server_env_opts += f'-e {k}={v} '
         with Connection(
                 host=server['host'],
                 user=server['username'],
                 connect_kwargs={ 'key_filename': server['pem']}) as cnx:
             try:
                 print('Uploading django project to server.')
-                cnx.run('mkdir -p ' + server_dir)
-                with cnx.cd(server_dir):
-                    cnx.run('pwd')
-                    cnx.put(zip_file_name, server_dir)
-                    print('Upload complete')
-                    cnx.run('unzip {0} -d {1}'.format(zip_file_name, app_name))
-                    with cnx.cd(app_name):
-                        cnx.run('touch Dockerfile')
-                        cnx.run(docker_file_cmd.format(docker_imagedocker_image, requirements_file,  django_app_name))
-                        cnx.run('docker build -t {0} .'.format(app_name))
-                        cnx.run('docker run -d -p {0}:80 {1}'.format(app_port, app_name))
-                    cnx.run('rm -R {0}'.format(app_name))
-                cnx.run('rm -R {0}'.format(server_dir))
+                cnx.run(f'mkdir -p {server_dir}')
+                cnx.run(f'rm -Rf {server_dir}/*')
+                cnx.put(zip_file_name, server_dir)
+                print('Upload complete')
+                cnx.run(f'unzip {zip_file_path} -d {unzip_dir_path}')
+                cnx.run(append_settings_py_cmd)
+                cnx.run(docker_file_cmd)
+                cnx.run(f'docker build -t {app_name} {unzip_dir_path}')
+                try:
+                    cnx.run(f'docker stop {app_name}')
+                    cnx.run(f'docker rm {app_name}')
+                except exceptions.UnexpectedExit:
+                    pass
+                cnx.run(f'docker run -d -p {app_port}:80 {server_env_opts} --name {app_name} {app_name}')
+                cnx.run(f'rm -Rf {server_dir}')
             except exceptions.UnexpectedExit:
                 print('Some exception')
 
