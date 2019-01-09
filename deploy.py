@@ -8,7 +8,8 @@ import shutil
 PATH_PREFIX = '/var/tmp/'
 
 
-def deploy():
+def deploy(verbose=False):
+    hide = not verbose
     print('Deploying')
     if not os.path.isfile(CONFIG_FILE):
         print("Please run django_up init to create config file")
@@ -67,22 +68,26 @@ EOF
                 user=server['username'],
                 connect_kwargs={ 'key_filename': server['pem']}) as cnx:
             try:
-                print('Uploading django project to server.')
-                cnx.run(f'mkdir -p {server_dir}')
-                cnx.run(f'rm -Rf {server_dir}/*')
+                print('Uploading django project to server...')
+                cnx.run(f'mkdir -p {server_dir}', hide=hide)
+                cnx.run(f'rm -Rf {server_dir}/*', hide=hide)
                 cnx.put(zip_file_name, server_dir)
                 print('Upload complete')
-                cnx.run(f'unzip {zip_file_path} -d {unzip_dir_path}')
-                cnx.run(append_settings_py_cmd)
-                cnx.run(docker_file_cmd)
-                cnx.run(f'docker build -t {app_name} {unzip_dir_path}')
+                print('Preparing files...')
+                cnx.run(f'unzip {zip_file_path} -d {unzip_dir_path}', hide=hide)
+                cnx.run(append_settings_py_cmd, hide=hide)
+                cnx.run(docker_file_cmd, hide=hide)
+                print('Building docker image...')
+                cnx.run(f'docker build -t {app_name} {unzip_dir_path}', hide=hide)
                 try:
-                    cnx.run(f'docker stop {app_name}')
-                    cnx.run(f'docker rm {app_name}')
+                    cnx.run(f'docker stop {app_name}', hide=hide)
+                    cnx.run(f'docker rm {app_name}', hide=hide)
                 except exceptions.UnexpectedExit:
                     pass
-                cnx.run(f'docker run -d -p {app_port}:80 {server_env_opts} --name {app_name} {app_name}')
-                cnx.run(f'rm -Rf {server_dir}')
+                print('Trying to run app in docker')
+                cnx.run(f'docker run -d -p {app_port}:80 {server_env_opts} --name {app_name} {app_name}', hide=hide)
+                cnx.run(f'rm -Rf {server_dir}', hide=hide)
+                print('App running successfully')
             except exceptions.UnexpectedExit:
                 print('Some exception')
 

@@ -7,6 +7,12 @@ from logs import logs
 
 def main():
     parser = ArgumentParser(description='Django up: Deployment tool for django.')
+    parser.add_argument(
+        '-v', '--verbose',
+        dest='verbose',
+        action='store_true',
+        help='Show all output from server'
+    )
     action_parser = parser.add_subparsers(
         title='action',
         description='Specify action to be performed by django_up',
@@ -19,7 +25,7 @@ def main():
     action_parser.add_parser('logs', help='Show logs of all docker containers')
 
     args = parser.parse_args()
-    globals()[args.action]()
+    globals()[args.action](verbose=args.verbose)
 
 
 if __name__ == "__main__":
