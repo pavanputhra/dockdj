@@ -1,5 +1,5 @@
 import os
-from du_settings import CONFIG_FILE
+from du_settings import CONFIG_FILE, SETTINGS_PY_FILE
 from fabric import Connection
 import yaml
 from invoke import exceptions
@@ -16,6 +16,9 @@ def deploy():
 
     with open(CONFIG_FILE, 'r') as the_file:
         config_yaml = yaml.load(the_file)
+
+    with open(SETTINGS_PY_FILE, 'r') as the_file:
+        settings_py = the_file.read()
 
     print('Zipping the django project')
     app_dir = config_yaml['app']['path']
@@ -42,6 +45,11 @@ EXPOSE 80
 EOF
 '''
 
+    append_settings_py_cmd = f'''cat << EOF >> {unzip_dir_path}/{django_app_name}/settings.py
+{settings_py}
+EOF
+ '''
+
     for server in config_yaml['servers']:
         with Connection(
                 host=server['host'],
@@ -54,10 +62,16 @@ EOF
                 cnx.put(zip_file_name, server_dir)
                 print('Upload complete')
                 cnx.run(f'unzip {zip_file_path} -d {unzip_dir_path}')
+                cnx.run(append_settings_py_cmd)
                 cnx.run(docker_file_cmd)
                 cnx.run(f'docker build -t {app_name} {unzip_dir_path}')
-                cnx.run(f'docker run -d -p {app_port}:80 {app_name}')
-                cnx.run('rm -Rf {0}'.format(server_dir))
+                try:
+                    cnx.run(f'docker stop {app_name}')
+                    cnx.run(f'docker rm {app_name}')
+                except exceptions.UnexpectedExit:
+                    pass
+                cnx.run(f'docker run -d -p {app_port}:80 --name {app_name} {app_name}')
+                cnx.run(f'rm -Rf {server_dir}')
             except exceptions.UnexpectedExit:
                 print('Some exception')
 
