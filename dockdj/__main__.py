@@ -1,4 +1,8 @@
 from argparse import ArgumentParser
+from dockdj.init import init
+from dockdj.setup import setup
+from dockdj.deploy import deploy
+from dockdj.logs import logs
 
 
 def main():
