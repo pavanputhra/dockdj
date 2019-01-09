@@ -1,14 +1,14 @@
-# Django Up
+# Dockdj
 
 #### Production Quality Django Deployments
 
-Django Up is a command line tool that allows you to deploy any [Django](https://www.djangoproject.com/) app to your own server.
+Dockdj is a command line tool that allows you to deploy any [Django](https://www.djangoproject.com/) app to your own server.
 
 This tool is inspired by [Meteor up](http://meteor-up.com/) tool which is used to deploy [Meteor.js](https://www.meteor.com/) app.
 
-You can install and use Django Up on Linux, Mac and Windows. It can deploy to servers running Ubuntu 14 or newer.
+You can install and use Dockdj on Linux, Mac and Windows. It can deploy to servers running Ubuntu 14 or newer.
 
-Django Up is powered by [Docker](http://www.docker.com/), making deployment easy to manage and reducing server specific errors.
+Dockdj is powered by [Docker](http://www.docker.com/), making deployment easy to manage and reducing server specific errors.
 
 
 #### Requirement
@@ -18,11 +18,11 @@ This tool needs Python > 3.6
 
 #### Usage
 
-    $ django_up init
+    $ dockdj init
 
-This will create two files `django_up.yaml` and `settings.py`
+This will create two files `dockdj.yaml` and `settings.py`
 
-Modify the `django_up.yaml` file to enter server configuration and app details. Initial file looks as follows.
+Modify the `dockdj.yaml` file to enter server configuration and app details. Initial file looks as follows.
 
     ---
     servers:
@@ -60,11 +60,11 @@ Modify the `django_up.yaml` file to enter server configuration and app details. 
 After editing these two files appropriately run following command to setup server. This will install docker in Ubuntu servers if not already installed.
 
     
-    $ django_up setup
+    $ dockdj setup
 
 
 To deploy the django app run following.
 
-    $ django_up deploy
+    $ dockdj deploy
     
-This will create docker image of your Django app. Runs the Django app using [gunicorn](https://gunicorn.org/) and binds the port to the port specified in `django_up.yaml`.
+This will create docker image of your Django app. Runs the Django app using [gunicorn](https://gunicorn.org/) and binds the port to the port specified in `dockdj.yaml`.
