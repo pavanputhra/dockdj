@@ -1,5 +1,5 @@
 import os.path
-from settings import CONFIG_FILE
+from du_settings import CONFIG_FILE
 
 
 def init():
