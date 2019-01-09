@@ -27,6 +27,7 @@ def deploy():
     django_app_name = config_yaml['app']['django_app']
     requirements_file = config_yaml['app']['requirements_file']
     app_port = config_yaml['app']['port']
+    envs = config_yaml['app']['env']
 
     server_dir = PATH_PREFIX + 'django_up'
 
@@ -35,10 +36,15 @@ def deploy():
     unzip_dir_path = f'{server_dir}/{app_name}'
     shutil.make_archive(app_name, 'zip', app_dir)
 
+    envs_string = ''
+    for k, v in envs.items():
+        envs_string += f'ENV {k} {v}\n'
+
     docker_file_cmd = f'''cat << EOF > {unzip_dir_path}/Dockerfile
 FROM {docker_imagedocker_image}
 ADD . app
 RUN pip install gunicorn && pip install -r app/{requirements_file} || :
+{envs_string}
 WORKDIR /app
 ENTRYPOINT [ "bash", "-c", "gunicorn {django_app_name}.wsgi -b 0.0.0.0:80" ]
 EXPOSE 80
