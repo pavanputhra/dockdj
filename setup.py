@@ -13,13 +13,11 @@ def setup():
     with open(CONFIG_FILE, 'r') as the_file:
         config_yaml = yaml.load(the_file)
 
-    print(config_yaml)
-
     for server in config_yaml['servers']:
         with Connection(
                 host=server['host'],
                 user=server['username'],
-                connect_kwargs={ 'key_filename': server['pem']}) as cnx:
+                connect_kwargs={'key_filename': server['pem']}) as cnx:
             try:
                 cnx.run('docker -v')
                 print('Docker already present')
