@@ -57,6 +57,11 @@ EOF
  '''
 
     for server in config_yaml['servers']:
+        server_env = server['env']
+        server_env_opts = ''
+        if server_env is not None:
+            for k, v in server_env.items():
+                server_env_opts += f'-e {k}={v} '
         with Connection(
                 host=server['host'],
                 user=server['username'],
@@ -76,7 +81,7 @@ EOF
                     cnx.run(f'docker rm {app_name}')
                 except exceptions.UnexpectedExit:
                     pass
-                cnx.run(f'docker run -d -p {app_port}:80 --name {app_name} {app_name}')
+                cnx.run(f'docker run -d -p {app_port}:80 {server_env_opts} --name {app_name} {app_name}')
                 cnx.run(f'rm -Rf {server_dir}')
             except exceptions.UnexpectedExit:
                 print('Some exception')
