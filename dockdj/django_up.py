@@ -1,8 +1,4 @@
 from argparse import ArgumentParser
-from init import init
-from setup import setup
-from deploy import deploy
-from logs import logs
 
 
 def main():

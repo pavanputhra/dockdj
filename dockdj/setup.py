@@ -1,5 +1,5 @@
 import os
-from du_settings import CONFIG_FILE
+from dockdj.du_settings import CONFIG_FILE
 from fabric import Connection
 import yaml
 from invoke import exceptions

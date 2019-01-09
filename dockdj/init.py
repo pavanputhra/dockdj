@@ -1,5 +1,5 @@
 import os.path
-from du_settings import CONFIG_FILE, SETTINGS_PY_FILE
+from dockdj.du_settings import CONFIG_FILE, SETTINGS_PY_FILE
 
 
 INIT_YAML = '''---
