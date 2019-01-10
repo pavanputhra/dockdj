@@ -7,8 +7,34 @@ import shutil
 server_dir = '/var/tmp/dockdj'
 
 
-def manage(**kwargs):
-    pass
+def manage(args='', verbose=False):
+    hide = not verbose
+    config_yaml, settings_py = read_config_files()
+    server = config_yaml['servers'][0]
+    app_name = config_yaml["app"]["name"]
+    app_dir = config_yaml['app']['path']
+
+    print('Zipping the django project')
+
+    shutil.make_archive(app_name, 'zip', app_dir)
+
+    with Connection(
+            host=server['host'],
+            user=server['username'],
+            connect_kwargs={'key_filename': server['pem']}) as cnx:
+        try:
+            build_docker_image(cnx, config_yaml, settings_py, hide)
+            server_env_opts = prepare_server_env_cmd_args(server)
+            cmd_args = ' '.join(args)
+            manage_cmd = f'python manage.py {cmd_args}'
+            print(manage_cmd)
+            cnx.run(
+                f'docker run {server_env_opts} --entrypoint "/bin/bash" {app_name} -c "{manage_cmd}"')
+            cnx.run(f'rm -Rf {server_dir}', hide=hide)
+        except exceptions.UnexpectedExit:
+            print('Some exception')
+
+    os.remove(f'{app_name}.zip')
 
 
 def deploy(verbose=False):
@@ -39,11 +65,7 @@ def deploy(verbose=False):
 def run_docker_app(cnx, config_yaml, server, hide):
     app_name = config_yaml["app"]["name"]
     app_port = config_yaml['app']['port']
-    server_env = server['env']
-    server_env_opts = ''
-    if server_env is not None:
-        for k, v in server_env.items():
-            server_env_opts += f'-e {k}={v} '
+    server_env_opts = prepare_server_env_cmd_args(server)
 
     try:
         cnx.run(f'docker stop {app_name}', hide=hide)
@@ -54,6 +76,15 @@ def run_docker_app(cnx, config_yaml, server, hide):
     cnx.run(f'docker run -d -p {app_port}:80 {server_env_opts} --name {app_name} {app_name}', hide=hide)
     cnx.run(f'rm -Rf {server_dir}', hide=hide)
     print('App running successfully')
+
+
+def prepare_server_env_cmd_args(server):
+    server_env_opts = ''
+    server_env = server['env']
+    if server_env is not None:
+        for k, v in server_env.items():
+            server_env_opts += f'-e {k}={v} '
+    return server_env_opts
 
 
 def build_docker_image(cnx, config_yaml, settings_py, hide):

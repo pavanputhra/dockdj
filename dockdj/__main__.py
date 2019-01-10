@@ -28,7 +28,10 @@ def main():
     manage_parser.add_argument('manage_args', nargs='*')
 
     args = parser.parse_args()
-    globals()[args.action](verbose=args.verbose)
+    if args.action == 'manage':
+        manage(args=args.manage_args, verbose=args.verbose)
+    else:
+        globals()[args.action](verbose=args.verbose)
 
 
 if __name__ == "__main__":
