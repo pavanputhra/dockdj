@@ -1,30 +1,25 @@
 import os
-from dockdj.du_settings import CONFIG_FILE, SETTINGS_PY_FILE
+from dockdj.util import read_config_files
 from fabric import Connection
-import yaml
 from invoke import exceptions
 import shutil
 
 PATH_PREFIX = '/var/tmp/'
 
 
+def manage(**kwargs):
+    pass
+
+
 def deploy(verbose=False):
     hide = not verbose
-    print('Deploying')
-    if not os.path.isfile(CONFIG_FILE):
-        print("Please run django_up init to create config file")
-        return
 
-    with open(CONFIG_FILE, 'r') as the_file:
-        config_yaml = yaml.load(the_file)
-
-    with open(SETTINGS_PY_FILE, 'r') as the_file:
-        settings_py = the_file.read()
+    config_yaml, settings_py = read_config_files()
 
     print('Zipping the django project')
     app_dir = config_yaml['app']['path']
     app_name = config_yaml['app']['name']
-    docker_imagedocker_image = config_yaml['app']['docker']['image']
+    docker_image = config_yaml['app']['docker']['image']
     django_app_name = config_yaml['app']['django_app']
     requirements_file = config_yaml['app']['requirements_file']
     app_port = config_yaml['app']['port']
@@ -42,7 +37,7 @@ def deploy(verbose=False):
         envs_string += f'ENV {k} {v}\n'
 
     docker_file_cmd = f'''cat << EOF > {unzip_dir_path}/Dockerfile
-FROM {docker_imagedocker_image}
+FROM {docker_image}
 ADD . app
 RUN pip install gunicorn && pip install -r app/{requirements_file} || :
 {envs_string}
