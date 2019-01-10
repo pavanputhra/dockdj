@@ -101,3 +101,12 @@ To deploy the django app run following.
     $ dockdj deploy
     
 This will create docker image of your Django app. Runs the Django app using [gunicorn](https://gunicorn.org/) and binds the port to the port specified in `dockdj.yaml`.
+
+
+#### Django manage.py
+
+You can run manage.py script on server using manage sub command as follows.
+
+    $ dockdj manage migrate
+    
+ 
