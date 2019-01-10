@@ -1,11 +1,11 @@
 import os
-from du_settings import CONFIG_FILE
-from fabric import Connection, SerialGroup
+from dockdj.du_settings import CONFIG_FILE
+from fabric import Connection
 import yaml
 from invoke import exceptions
 
 
-def logs():
+def logs(verbose=False):
     if not os.path.isfile(CONFIG_FILE):
         print("Please run django_up init to create config file")
         return

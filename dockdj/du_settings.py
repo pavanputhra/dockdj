@@ -1,2 +1,2 @@
-CONFIG_FILE = 'django_up.yaml'
+CONFIG_FILE = 'dockdj.yaml'
 SETTINGS_PY_FILE = 'settings.py'

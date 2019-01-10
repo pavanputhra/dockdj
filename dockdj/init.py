@@ -1,5 +1,5 @@
 import os.path
-from du_settings import CONFIG_FILE, SETTINGS_PY_FILE
+from dockdj.du_settings import CONFIG_FILE, SETTINGS_PY_FILE
 
 
 INIT_YAML = '''---
@@ -7,7 +7,7 @@ servers:
 - host: 1.2.3.4
   # must be sudo without password
   username: root
-  pem: "~/.ssh/id_rsa"
+  pem: "/home/user/.ssh/id_rsa"
   # optional
   env:
     PER_SERVER: abc
@@ -36,7 +36,7 @@ ALLOWED_HOSTS = []
 '''
 
 
-def init():
+def init(verbose=False):
 
     if os.path.isfile(CONFIG_FILE):
         print(f'File {CONFIG_FILE} already exists.')
