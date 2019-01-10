@@ -15,6 +15,12 @@ Dockdj is powered by [Docker](http://www.docker.com/), making deployment easy to
 
 This tool needs Python > 3.6
 
+#### Install
+
+Install the dockdj using following command
+
+    $ pip install dockdj
+
 
 #### Usage
 
