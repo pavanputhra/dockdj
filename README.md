@@ -18,9 +18,36 @@ This tool needs Python > 3.6
 
 #### Usage
 
+Lets say you have a Django project with following directory structure.
+
+    parent
+        - hello_world
+        |    - hello_world
+        |        - wsgi.py
+
+Create a sibling to the django project directory for saving dockdj settings files which will be used to deploy the django app
+
+    $ mkdir deploy
+        
+    parent
+        - hello_world
+        |    -hello_world
+        |        -wsgi.py
+        - deploy
+    
+    $ cd deploy
+
     $ dockdj init
 
 This will create two files `dockdj.yaml` and `settings.py`
+
+    parent
+        - hello_world
+        |    -hello_world
+        |        -wsgi.py
+        - deploy
+            - dockdj.yaml
+            - settings.py
 
 Modify the `dockdj.yaml` file to enter server configuration and app details. Initial file looks as follows.
 
