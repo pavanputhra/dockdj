@@ -2,4 +2,4 @@
 python setup.py sdist bdist_wheel
 twine check dist/*
 twine upload dist/*
-rm -R dist build
+rm -R dist build dockdj.egg-info
