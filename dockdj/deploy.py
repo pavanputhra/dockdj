@@ -129,7 +129,6 @@ def create_settings_cmd(config_yaml, settings_py):
     else:
         settings: Dict = run_path(f'{django_path}/{django_app}/settings.py')
         static_url = settings.get('STATIC_URL')
-        print(static_url)
 
     append_settings_py_cmd = f'''cat << EOF >> {server_dir}/{app_name}/{django_app}/settings.py
 {settings_py}
