@@ -5,6 +5,8 @@ from fabric import Connection
 from invoke import exceptions
 import shutil
 from runpy import run_path
+from importlib import resources
+from string import Template
 
 server_dir = '/var/tmp/dockdj'
 
@@ -127,7 +129,6 @@ def create_settings_cmd(config_yaml, settings_py):
     else:
         settings: Dict = run_path(f'{django_path}/{django_app}/settings.py')
         static_url = settings.get('STATIC_URL')
-        print(static_url)
 
     append_settings_py_cmd = f'''cat << EOF >> {server_dir}/{app_name}/{django_app}/settings.py
 {settings_py}
@@ -140,44 +141,7 @@ EOF
 def create_nginx_site_file(config_yaml):
     app_name = config_yaml["app"]["name"]
     nginx_cmd = f'cat <<-"EOF" > {server_dir}/{app_name}/default\n'
-    nginx_config = '''
-upstream app_server {
-  # for a TCP configuration
-  server 127.0.0.1:8000 fail_timeout=0;
-}
-
-server {
-  # use 'listen 80 deferred;' for Linux
-  # use 'listen 80 accept_filter=httpready;' for FreeBSD
-  listen 80 default_server;
-  client_max_body_size 4G;
-
-  keepalive_timeout 5;
-
-  # path for static files
-  root /static_files;
-
-  location / {
-    # checks for static file, if not found proxy to app
-    try_files $uri @proxy_to_app;
-  }
-
-  location @proxy_to_app {
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Host $http_host;
-    # we don't want nginx trying to do something clever with
-    # redirects, we set the Host: header above already.
-    proxy_redirect off;
-    proxy_pass http://app_server;
-  }
-
-  error_page 500 502 503 504 /500.html;
-  location = /500.html {
-    root /static_files;
-  }
-}
-'''
+    nginx_config = resources.read_text("dockdj", "nginx.txt")
     nginx_cmd += f'{nginx_config}\nEOF\n'
     return nginx_cmd
 
@@ -186,22 +150,33 @@ def create_dock_file_cmd(config_yaml):
     docker_image = config_yaml['app']['docker']['image']
     req_file = config_yaml['app']['requirements_file']
     dj_app = config_yaml['app']['django_app']
+    app_name = config_yaml['app']['name']
     envs_string = ''
     for k, v in config_yaml['app']['env'].items():
         envs_string += f'ENV {k} {v}\n'
 
-    docker_file_cmd = f'''cat << EOF > {server_dir}/{config_yaml['app']['name']}/Dockerfile
-FROM {docker_image}
-ADD . app
-RUN apt-get update && \
-    apt-get install nginx -y
-RUN pip install gunicorn && pip install -r /app/{req_file} || :
-RUN python /app/manage.py collectstatic
-ADD default /etc/nginx/sites-available/
-{envs_string}
-WORKDIR /app
-ENTRYPOINT [ "/bin/bash", "-c", "service nginx start && gunicorn {dj_app}.wsgi -b 0.0.0.0:8000" ]
-EXPOSE 80
-EOF
-'''
+    
+    is_asgi = config_yaml['app']['asgi']
+    if is_asgi:
+        server = 'daphne'
+        server_command = f'daphne -b 0.0.0.0 -p 8000 {dj_app}.asgi:application'
+    else:
+        server = 'gunicorn'
+        server_command = f'gunicorn {dj_app}.wsgi -b 0.0.0.0:8000'
+
+    
+    temp_data = {
+        'docker_image': docker_image,
+        'req_file': req_file,
+        'envs_string': envs_string,
+        'dj_app': dj_app,
+        'server': server,
+        'server_command': server_command
+    }
+
+    docker_template = resources.read_text("dockdj", "docker.txt")
+    temp = Template(docker_template)
+    docker_file_data = temp.substitute(temp_data)
+
+    docker_file_cmd = f'cat << EOF > {server_dir}/{app_name}/Dockerfile\n{docker_file_data}\nEOF'
     return docker_file_cmd

@@ -1,0 +1,12 @@
+FROM $docker_image
+RUN apt-get update && \
+    apt-get install nginx -y
+RUN pip install $server
+ADD default /etc/nginx/sites-available/
+ADD . app
+RUN pip install -r /app/$req_file || :
+RUN python /app/manage.py collectstatic
+$envs_string
+WORKDIR /app
+ENTRYPOINT [ "/bin/bash", "-c", "service nginx start && $server_command" ]
+EXPOSE 80
