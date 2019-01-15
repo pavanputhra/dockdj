@@ -155,11 +155,23 @@ def create_dock_file_cmd(config_yaml):
     for k, v in config_yaml['app']['env'].items():
         envs_string += f'ENV {k} {v}\n'
 
+    
+    is_asgi = config_yaml['app']['asgi']
+    if is_asgi:
+        server = 'daphne'
+        server_command = f'daphne -b 0.0.0.0 -p 8000 {dj_app}.asgi:application'
+    else:
+        server = 'gunicorn'
+        server_command = f'gunicorn {dj_app}.wsgi -b 0.0.0.0:8000'
+
+    
     temp_data = {
         'docker_image': docker_image,
         'req_file': req_file,
         'envs_string': envs_string,
         'dj_app': dj_app,
+        'server': server,
+        'server_command': server_command
     }
 
     docker_template = resources.read_text("dockdj", "docker.txt")
