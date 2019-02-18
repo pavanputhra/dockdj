@@ -1,0 +1,75 @@
+upstream wsgi_server {
+  # for a TCP configuration
+  server wsgi:80 fail_timeout=0;
+}
+
+upstream asgi_server {
+    # for a TCP configuration
+    server asgi:80 fail_timeout=0;
+}
+
+server {
+    listen 80 default_server;
+    client_max_body_size 4G;
+
+    keepalive_timeout 5;
+
+    # path for static files
+    root /static_files;
+
+
+    location @proxy_to_asgi {
+        proxy_pass http://asgi_server;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_redirect     off;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Host $server_name;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    location @proxy_to_wsgi {
+        proxy_pass http://wsgi_server;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_redirect     off;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Host $server_name;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+
+    {% if wsgi %}
+    location / {
+        # checks for static file, if not found proxy to app
+        try_files $uri @proxy_to_wsgi;
+    }
+
+    {% elif asgi %}
+
+    location / {
+        # checks for static file, if not found proxy to app
+        try_files $uri @proxy_to_asgi;
+    }
+
+    {% endif %}
+
+    {% for path in asgi_paths %}
+    location {{path}} {
+        try_files $uri @proxy_to_asgi;
+    }
+    {% endfor %}
+
+    error_page 500 502 503 504 /500.html;
+    location = /500.html {
+        root /static_files;
+    }
+}
