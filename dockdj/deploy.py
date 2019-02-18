@@ -14,33 +14,104 @@ from string import Template
 server_dir = '/var/tmp/dockdj'
 
 
-def manage(args='', verbose=False):
+def one_off(args='', verbose=False):
     hide = not verbose
     config_yaml, settings_py = read_config_files()
-    server = config_yaml['servers'][0]
+    server = config_yaml['server']
     app_name = config_yaml["app"]["name"]
-    app_dir = config_yaml['app']['path']
+    wsgi = config_yaml['app']['wsgi']
+    asgi = config_yaml['app']['asgi']
 
-    print('Zipping the django project')
-
-    shutil.make_archive(app_name, 'zip', app_dir)
+    if wsgi:
+        image_name = 'wsgi'
+    elif asgi:
+        image_name = 'asgi'
+    else:
+        print('At least wsgi or asgi service should be defined to run one-off command.')
+        return
 
     with Connection(
             host=server['host'],
             user=server['username'],
             connect_kwargs={'key_filename': server['pem']}) as cnx:
         try:
-            pass
-            # build_docker_image(cnx, config_yaml, settings_py, hide)
-            # server_env_opts = prepare_server_env_cmd_args(server)
-            # cmd_args = ' '.join(args)
-            # manage_cmd = f'python manage.py {cmd_args}'
-            # print(manage_cmd)
-            # cnx.run(
-            #     f'docker run {server_env_opts} --entrypoint "/bin/bash" {app_name} -c "{manage_cmd}"')
-            # cnx.run(f'rm -Rf {server_dir}', hide=hide)
+            with cnx.cd(f'{server_dir}/{app_name}'):
+                print(f'docker-compose run {image_name} {" ".join(args)}')
+                cnx.run(f'docker-compose run {image_name} {" ".join(args)}')
         except exceptions.UnexpectedExit:
             print('Some exception')
+
+
+def stop(verbose=False):
+    hide = not verbose
+
+    config_yaml, settings_py = read_config_files()
+    app_dir = config_yaml['app']['path']
+    app_name = config_yaml["app"]["name"]
+
+    shutil.make_archive(app_name, 'zip', app_dir)
+
+    server = config_yaml['server']
+    with Connection(
+            host=server['host'],
+            user=server['username'],
+            connect_kwargs={'key_filename': server['pem']}) as cnx:
+        try:
+            with cnx.cd(f'{server_dir}/{app_name}'):
+                cnx.run('docker-compose stop')
+        except exceptions.UnexpectedExit as e:
+            print('Some exception')
+            print(e)
+
+    os.remove(f'{app_name}.zip')
+
+
+def restart(verbose=False):
+    hide = not verbose
+
+    config_yaml, settings_py = read_config_files()
+    app_dir = config_yaml['app']['path']
+    app_name = config_yaml["app"]["name"]
+
+    shutil.make_archive(app_name, 'zip', app_dir)
+
+    server = config_yaml['server']
+    with Connection(
+            host=server['host'],
+            user=server['username'],
+            connect_kwargs={'key_filename': server['pem']}) as cnx:
+        try:
+            with cnx.cd(f'{server_dir}/{app_name}'):
+                cnx.run('docker-compose restart')
+        except exceptions.UnexpectedExit as e:
+            print('Some exception')
+            print(e)
+
+    os.remove(f'{app_name}.zip')
+
+
+def logs(follow='', verbose=False):
+    hide = not verbose
+
+    config_yaml, settings_py = read_config_files()
+    app_dir = config_yaml['app']['path']
+    app_name = config_yaml["app"]["name"]
+
+    shutil.make_archive(app_name, 'zip', app_dir)
+
+    server = config_yaml['server']
+    with Connection(
+            host=server['host'],
+            user=server['username'],
+            connect_kwargs={'key_filename': server['pem']}) as cnx:
+        try:
+            with cnx.cd(f'{server_dir}/{app_name}'):
+                cnx.run(f'docker-compose logs')
+        except exceptions.UnexpectedExit as e:
+            print('Some exception')
+            print(e)
+        except KeyboardInterrupt:
+            pass
 
     os.remove(f'{app_name}.zip')
 
@@ -56,18 +127,18 @@ def deploy(verbose=False):
 
     shutil.make_archive(app_name, 'zip', app_dir)
 
-    for server in config_yaml['servers']:
-        with Connection(
-                host=server['host'],
-                user=server['username'],
-                connect_kwargs={'key_filename': server['pem']}) as cnx:
-            try:
-                prepare_dir_structs(cnx, config_yaml, settings_py, hide)
-                run_docker_app(cnx, config_yaml, server, hide)
+    server = config_yaml['server']
+    with Connection(
+            host=server['host'],
+            user=server['username'],
+            connect_kwargs={'key_filename': server['pem']}) as cnx:
+        try:
+            prepare_dir_structs(cnx, config_yaml, settings_py, hide)
+            run_docker_app(cnx, config_yaml, server, hide)
 
-            except exceptions.UnexpectedExit as e:
-                print('Some exception')
-                print(e)
+        except exceptions.UnexpectedExit as e:
+            print('Some exception')
+            print(e)
 
     os.remove(f'{app_name}.zip')
 
@@ -119,6 +190,7 @@ def run_docker_app(cnx, config_yaml, server, hide):
     app_name = config_yaml["app"]["name"]
 
     with cnx.cd(f'{server_dir}/{app_name}'):
+        cnx.run('docker-compose down')
         cnx.run('docker-compose up -d')
     print('App running successfully')
 

@@ -1,8 +1,7 @@
 from argparse import ArgumentParser
 from dockdj.init import init
 from dockdj.setup import setup
-from dockdj.deploy import deploy, manage
-from dockdj.logs import logs
+from dockdj.deploy import deploy, one_off, stop, restart, logs
 
 
 def main():
@@ -18,18 +17,24 @@ def main():
         dest='action',
         required=True)
     action_parser.add_parser('init', help='Create settings files which will be used to deploy')
-    action_parser.add_parser('setup', help='Installs docker in the servers')
-    action_parser.add_parser('deploy', help='Deploys the django app to servers')
-    action_parser.add_parser('logs', help='Show logs of all docker containers')
+    action_parser.add_parser('setup', help='Installs docker in the server')
+    action_parser.add_parser('deploy', help='Deploys the django app to server')
+    action_parser.add_parser('stop', help='Stop the django app to server')
+    action_parser.add_parser('restart', help='Restart the django app to server')
 
-    manage_parser = action_parser.add_parser(
-        'manage',
+    logs_parser = action_parser.add_parser('logs', help='Show logs of all docker containers')
+    logs_parser.add_argument('-f', action='store_true')
+
+    one_off_parser = action_parser.add_parser(
+        'one-off',
         help='Runs the django manage command on first configured container.')
-    manage_parser.add_argument('manage_args', nargs='*')
+    one_off_parser.add_argument('action_args', nargs='*')
 
     args = parser.parse_args()
-    if args.action == 'manage':
-        manage(args=args.manage_args, verbose=args.verbose)
+    if args.action == 'one-off':
+        one_off(args=args.action_args, verbose=args.verbose)
+    elif args.action == 'logs':
+        logs(follow=args.f, verbose=args.verbose)
     else:
         globals()[args.action](verbose=args.verbose)
 
