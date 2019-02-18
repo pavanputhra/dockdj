@@ -109,7 +109,7 @@ Remove the optional/unused configuration according to your needs.
         app: 'hello_world'
       requirements_file: 'requirements.txt'
       # Django project directory
-      path: "/Users/pavan/MyProgs/OpenSource/django-up/code/hello_world"
+      path: "/path/to/django/code/hello_world"
       docker:
         image: python:3.7
     
