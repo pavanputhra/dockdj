@@ -14,18 +14,18 @@ def setup(verbose=False):
     with open(CONFIG_FILE, 'r') as the_file:
         config_yaml = yaml.load(the_file)
 
-    for server in config_yaml['servers']:
-        with Connection(
-                host=server['host'],
-                user=server['username'],
-                connect_kwargs={'key_filename': server['pem']}) as cnx:
-            try:
-                cnx.run('docker -v', hide=hide)
-                cnx.run('docker-compose --version', hide=hide)
-                print('Docker & Docker compose already present')
-            except exceptions.UnexpectedExit:
-                print('Docker or docker compose not present')
-                install_docker(cnx, hide=hide)
+    server = config_yaml['server']
+    with Connection(
+            host=server['host'],
+            user=server['username'],
+            connect_kwargs={'key_filename': server['pem']}) as cnx:
+        try:
+            cnx.run('docker -v', hide=hide)
+            cnx.run('docker-compose --version', hide=hide)
+            print('Docker & Docker compose already present')
+        except exceptions.UnexpectedExit:
+            print('Docker or docker compose not present')
+            install_docker(cnx, hide=hide)
 
 
 def install_docker(cnx, hide=True):
