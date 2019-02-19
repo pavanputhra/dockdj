@@ -162,6 +162,13 @@ def prepare_dir_structs(cnx, config_yaml, settings_py, hide):
     append_settings_py_cmd = create_settings_cmd(f'{unzip_dir_path}/app/{settings_path_rel}', settings_py)
     cnx.run(append_settings_py_cmd, hide=hide)
 
+    # Upload extra files
+    extra_file_path = f'{unzip_dir_path}/app/extra_files'
+    cnx.run(f'mkdir -p {extra_file_path}', hide=hide)
+    extra_files = config_yaml['app'].get('extra_files', [])
+    for e_files in extra_files:
+        cnx.put(e_files, extra_file_path)
+
     docker_file_cmd = create_dock_file_cmd(config_yaml)
     cnx.run(docker_file_cmd, hide=hide)
     with cnx.cd(f'{unzip_dir_path}/app'):
