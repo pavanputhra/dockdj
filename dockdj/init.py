@@ -22,6 +22,8 @@ app:
   celery: # optional for celery django app
     app: 'hello_world'
   requirements_file: 'requirements.txt'
+  extra_files: # Optional: config, certs any other files loaded to /app/extra_files/* in docker container
+    - /path/to/abc.txt
   # Django project directory
   path: "/path/to/django/code/hello_world"
   docker:
