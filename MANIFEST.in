@@ -1,1 +1,2 @@
 include dockdj/*.txt
+include dockdj/*.jinja
