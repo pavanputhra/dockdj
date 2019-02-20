@@ -68,6 +68,13 @@ server {
     }
     {% endfor %}
 
+    {% if static_url %}
+    location {{static_url}} {
+        rewrite  ^{{static_url}}(.*) /$1 break;
+        try_files $uri $uri/ =404;
+    }
+    {% endif %}
+
     error_page 500 502 503 504 /500.html;
     location = /500.html {
         root /static_files;

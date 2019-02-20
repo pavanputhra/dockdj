@@ -1,5 +1,6 @@
 import io
 import os
+from runpy import run_path
 
 import jinja2
 import yaml
@@ -227,10 +228,22 @@ def create_nginx_site_file(config_yaml):
     wsgi = config_yaml["app"].get('wsgi', None)
     asgi = config_yaml["app"].get('asgi', None)
     asgi_paths = config_yaml["app"]['asgi'].get('paths', []) if asgi else []
+
+    project_settings_path = f'{config_yaml["app"]["path"]}/{config_yaml["app"]["settings"]}'
+    project_app_settings = run_path(project_settings_path)
+    deploy_app_settings = run_path('./settings.py')
+
+    static_url = None
+
+    if deploy_app_settings.get('STATIC_URL', None):
+        static_url = deploy_app_settings['STATIC_URL']
+    elif project_app_settings.get('STATIC_URL', None):
+        static_url = project_app_settings['STATIC_URL']
+
     nginx_cmd = f'cat <<-"EOF" > {server_dir}/{app_name}/nginx/default\n'
     nginx_config_temp = resources.read_text("dockdj", "nginx.jinja")
     nginx_template = jinja2.Template(nginx_config_temp)
-    nginx_config = nginx_template.render(wsgi=wsgi, asgi=asgi, asgi_paths=asgi_paths)
+    nginx_config = nginx_template.render(wsgi=wsgi, asgi=asgi, asgi_paths=asgi_paths, static_url=static_url)
     nginx_cmd += f'{nginx_config}\nEOF\n'
     return nginx_cmd
 
