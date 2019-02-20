@@ -167,7 +167,17 @@ def prepare_dir_structs(cnx, config_yaml, settings_py, hide):
     cnx.run(f'mkdir -p {extra_file_path}', hide=hide)
     extra_files = config_yaml['app'].get('extra_files', [])
     for e_files in extra_files:
-        cnx.put(e_files, extra_file_path)
+        if os.path.isfile(e_files):
+            cnx.put(e_files, extra_file_path)
+        elif os.path.isdir(e_files):
+            print(e_files)
+            base_name = os.path.basename(os.path.normpath(e_files))
+            print(base_name)
+            shutil.make_archive(base_name, 'zip', e_files)
+            cnx.put(f'{base_name}.zip', extra_file_path)
+            cnx.run(f'unzip {extra_file_path}/{base_name}.zip -d {extra_file_path}/{base_name}')
+            cnx.run(f'rm {extra_file_path}/{base_name}.zip', hide=hide)
+            os.remove(f'{base_name}.zip')
 
     docker_file_cmd = create_dock_file_cmd(config_yaml)
     cnx.run(docker_file_cmd, hide=hide)
